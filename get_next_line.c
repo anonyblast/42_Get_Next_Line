@@ -6,55 +6,59 @@
 /*   By: gusluiz- <gusluiz-@student.42sp.org.br     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/08/01 14:57:49 by gusluiz-          #+#    #+#             */
-/*   Updated: 2022/08/10 18:19:57 by gusluiz-         ###   ########.fr       */
+/*   Updated: 2022/08/15 23:41:49 by gusluiz-         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-char	*backup(char *backup_buffer)
+void	free_ptr(void **ptr)
+{
+	free(*ptr);
+	*ptr = NULL;
+}
+
+static char	*backup(char *backup_buffer)
 {
 	char	*line;
-	size_t	counter;
-	int		len;
+	size_t	len;
+	size_t	size;
 
-	counter = 0;
-	while (!backup_buffer[counter] && backup_buffer[counter] != '\n')
-		counter++;
-	if (!backup_buffer[counter])
+	len = 0;
+	while (backup_buffer[len] && backup_buffer[len] != '\n')
+		len++;
+	if (!backup_buffer[len])
 	{
-		free (backup_buffer);
-		backup_buffer = NULL;
+		free_ptr((void **)backup_buffer);
 		return (NULL);
 	}
-	len = ft_strlen(backup_buffer) - (counter + 1);
-	line = malloc(len * sizeof(char));
+	line = malloc((ft_strlen(backup_buffer) - len + 1) * sizeof(char));
 	if (!line)
 		return (NULL);
-	ft_strlcpy(line, backup_buffer + (counter + 1), len + 2);
-	free(backup_buffer);
-	backup_buffer = NULL;
+	size = ft_strlen(backup_buffer) - len + 1;
+	ft_strlcpy(line, backup_buffer + (len + 1), size);
+	free_ptr((void **)backup_buffer);
 	return (line);
 }
 
-char	*get_line(char *backup_buffer)
+static char	*get_line(char *backup_buffer)
 {
 	char	*line;
-	size_t	counter;
+	size_t	len;
 
-	counter = 0;
-	if (!backup_buffer[counter])
+	len = 0;
+	if (!backup_buffer[len])
 		return (NULL);
-	while (backup_buffer[counter] != '\n')
-		counter++;
-	line = malloc((counter + 2) * sizeof(char));
+	while (backup_buffer[len] && backup_buffer[len] != '\n')
+		len++;
+	line = malloc((len + 2) * sizeof(char));
 	if (!line)
 		return (NULL);
-	ft_strlcpy(line, backup_buffer, (counter + 2));
+	ft_strlcpy(line, backup_buffer, (len + 2));
 	return (line);
 }
 
-char	*reader(int fd, char **buffer, char	*backup_buffer)
+static char	*reader(int fd, char **buffer, char	*backup_buffer)
 {
 	char	*tmp;
 	size_t	read_return;
@@ -65,62 +69,68 @@ char	*reader(int fd, char **buffer, char	*backup_buffer)
 		read_return = read(fd, *buffer, BUFFER_SIZE);
 		if (read_return < 0)
 		{
-			free(*buffer);
-			*buffer = NULL;
-			free(backup);
+			free_ptr((void **)buffer);
+			free (backup);
 			return (NULL);
 		}
 		(*buffer)[read_return] = '\0';
 		tmp = backup_buffer;
-		backup_buffer = ft_strjoin(backup_buffer, *buffer);
-		free(tmp);
-		tmp = NULL;
+		backup_buffer = ft_strjoin(tmp, *buffer);
+		free_ptr((void **)tmp);
 	}
-	free(*buffer);
-	*buffer = NULL;
+	free_ptr((void **)buffer);
 	return (backup_buffer);
 }
 
 char	*get_next_line(int fd)
 {
-	char		*buf;
+	char		*buffer;
 	char		*line;
-	static char	*backup_buf = NULL;
+	static char	*backup_buffer = NULL;
 
 	if (fd < 0 || BUFFER_SIZE < 1)
 		return (NULL);
-	if (!backup_buf)
-		backup_buf = ft_strdup("");
-	buf = malloc((BUFFER_SIZE + 1) * sizeof(char));
-	if (!buf)
+	if (!backup_buffer)
+		backup_buffer = ft_strdup("");
+	buffer = malloc((BUFFER_SIZE + 1) * sizeof(char));
+	if (!buffer)
 		return (NULL);
-	backup_buf = reader(fd, &buf, backup_buf);
-	if (!backup_buf)
+	backup_buffer = reader(fd, &buffer, backup_buffer);
+	if (!backup_buffer)
 		return (NULL);
-	line = get_line(backup_buf);
-	backup_buf = backup(backup_buf);
+	line = get_line(backup_buffer);
+	backup_buffer = backup(backup_buffer);
 	return (line);
 }
 
+// int main(void)
+// {
+// 	// ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** //
+// 	//				TEST WITH MAIN FUNC					  //
+// 	// ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** //
 
-/* 
+// 	// ********** Declare variables for the test **********
+// 	char    *path;
+//     char    *gnl_function;
+//     int		pfd;
+//     int		i;
+// 	int		limit;
 
- ** ** ** ** ** ** TEST ** ** ** ** ** **
+// 	// ****************** Assign values *******************
+// 	#define LOCKFILE "./file.html" // Enter here the path to test file
+// 	if ((pfd = open(LOCKFILE, O_RDONLY)) == -1)
+// 	{
+// 		printf("Cannot open %s. Please, check the specified path before running the test.\n", LOCKFILE);
+// 		exit(1);
+// 	}
+// 	i = 0;
+// 	limit = 2; // Enter here the limit of lines that will be printed
 
-int main(void)
-{
-	int	fd = open("file.html", O_RDONLY);
-	// char *line = get_next_line(fd);
-	// printf("%s\n", line);
-	int counter = 0;
-	int lines_to_print = 2;
-	char *gnl;
-	while (counter <= lines_to_print)
-	{
-		gnl = get_next_line(2);
-		printf("PRINT %d\t:\t%s", ++counter, gnl);
-		free(gnl);
-	}
-	return (0);
-}
- */
+// 	// Loop to print the lines specified in the limit variable
+//     while (i <= limit)
+//     {
+//         gnl_function = get_next_line(pfd);
+//         printf("%dº LINE\t:\t\\***/ %s \\***/", i ++, gnl_function);
+//         free(gnl_function);
+//     }
+// }
