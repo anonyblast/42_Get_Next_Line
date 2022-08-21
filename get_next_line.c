@@ -6,17 +6,11 @@
 /*   By: gusluiz- <gusluiz-@student.42sp.org.br     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/08/01 14:57:49 by gusluiz-          #+#    #+#             */
-/*   Updated: 2022/08/15 23:41:49 by gusluiz-         ###   ########.fr       */
+/*   Updated: 2022/08/21 17:33:29 by gusluiz-         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
-
-void	free_ptr(void **ptr)
-{
-	free(*ptr);
-	*ptr = NULL;
-}
 
 static char	*backup(char *backup_buffer)
 {
@@ -29,7 +23,8 @@ static char	*backup(char *backup_buffer)
 		len++;
 	if (!backup_buffer[len])
 	{
-		free_ptr((void **)backup_buffer);
+		free (backup_buffer);
+		backup_buffer = NULL;
 		return (NULL);
 	}
 	line = malloc((ft_strlen(backup_buffer) - len + 1) * sizeof(char));
@@ -37,7 +32,8 @@ static char	*backup(char *backup_buffer)
 		return (NULL);
 	size = ft_strlen(backup_buffer) - len + 1;
 	ft_strlcpy(line, backup_buffer + (len + 1), size);
-	free_ptr((void **)backup_buffer);
+	free (backup_buffer);
+	backup_buffer = NULL;
 	return (line);
 }
 
@@ -61,7 +57,7 @@ static char	*get_line(char *backup_buffer)
 static char	*reader(int fd, char **buffer, char	*backup_buffer)
 {
 	char	*tmp;
-	size_t	read_return;
+	int		read_return;
 
 	read_return = 1;
 	while (!ft_strchr(backup_buffer, '\n') && read_return != 0)
@@ -69,16 +65,19 @@ static char	*reader(int fd, char **buffer, char	*backup_buffer)
 		read_return = read(fd, *buffer, BUFFER_SIZE);
 		if (read_return < 0)
 		{
-			free_ptr((void **)buffer);
-			free (backup);
+			free (*buffer);
+			*buffer = NULL;
+			free (backup_buffer);
 			return (NULL);
 		}
 		(*buffer)[read_return] = '\0';
 		tmp = backup_buffer;
 		backup_buffer = ft_strjoin(tmp, *buffer);
-		free_ptr((void **)tmp);
+		free (tmp);
+		tmp = NULL;
 	}
-	free_ptr((void **)buffer);
+	free (*buffer);
+	*buffer = NULL;
 	return (backup_buffer);
 }
 
@@ -88,7 +87,7 @@ char	*get_next_line(int fd)
 	char		*line;
 	static char	*backup_buffer = NULL;
 
-	if (fd < 0 || BUFFER_SIZE < 1)
+	if (fd < 0 || BUFFER_SIZE <= 0)
 		return (NULL);
 	if (!backup_buffer)
 		backup_buffer = ft_strdup("");
@@ -105,32 +104,13 @@ char	*get_next_line(int fd)
 
 // int main(void)
 // {
-// 	// ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** //
-// 	//				TEST WITH MAIN FUNC					  //
-// 	// ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** //
-
-// 	// ********** Declare variables for the test **********
-// 	char    *path;
-//     char    *gnl_function;
-//     int		pfd;
-//     int		i;
-// 	int		limit;
-
-// 	// ****************** Assign values *******************
-// 	#define LOCKFILE "./file.html" // Enter here the path to test file
-// 	if ((pfd = open(LOCKFILE, O_RDONLY)) == -1)
+// 	int fd = open("./file.html", O_RDONLY);
+// 	char *line = "";
+// 	while ((line = get_next_line(fd)) != NULL)
 // 	{
-// 		printf("Cannot open %s. Please, check the specified path before running the test.\n", LOCKFILE);
-// 		exit(1);
+// 		printf("%s\n", line);
+// 		free(line);
 // 	}
-// 	i = 0;
-// 	limit = 2; // Enter here the limit of lines that will be printed
-
-// 	// Loop to print the lines specified in the limit variable
-//     while (i <= limit)
-//     {
-//         gnl_function = get_next_line(pfd);
-//         printf("%dº LINE\t:\t\\***/ %s \\***/", i ++, gnl_function);
-//         free(gnl_function);
-//     }
+// 	close(fd);
+// 	return (0);
 // }
